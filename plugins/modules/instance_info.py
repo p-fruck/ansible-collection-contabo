@@ -26,7 +26,7 @@ class ContaboInstanceInfo():
 
 def argspec():
     return {
-        "api_key": {"type": "str", "required": True},
+        "api_key": {"type": "str", "required": True, "no_log": True},
     }
 
 def main():
