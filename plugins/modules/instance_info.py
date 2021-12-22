@@ -2,27 +2,16 @@
 # -*- coding: utf-8 -*-
 
 from ansible.module_utils.basic import AnsibleModule
-import json
-import pfruck_contabo
-from pfruck_contabo.rest import ApiException
-import uuid
+from ansible_collections.pfruck.contabo.plugins.module_utils.contabo_rest_client import ContaboRestClient
+from pfruck_contabo import InstancesApi
 
-API_URL = "https://api.contabo.com"
-
-class ContaboInstanceInfo():
+class ContaboInstanceInfo(ContaboRestClient):
     def __init__(self, module):
-        self.module = module
-        config = pfruck_contabo.Configuration()
-        config.host = API_URL
-        print(module.params.get('api_key'))
-        config.api_key['Authorization'] = module.params.get('api_key')
-        config.api_key_prefix['Authorization'] = 'Bearer'
-        self.api_instance = pfruck_contabo.InstancesApi(pfruck_contabo.ApiClient(config))
+        super(ContaboInstanceInfo, self).__init__(module, InstancesApi)
 
     def get_instances(self):
-        x_request_id = str(uuid.uuid4())
-        return self.api_instance.retrieve_instances_list(x_request_id)
-
+        api_response = self._request(self.api_instance.retrieve_instances_list)
+        return self.format_json(api_response)
 
 def argspec():
     return {
@@ -31,13 +20,9 @@ def argspec():
 
 def main():
     module = AnsibleModule(argument_spec=argspec(), supports_check_mode=False)
-    contabo_instance_mgr = ContaboInstanceInfo(module)
-    try:
-        api_response = contabo_instance_mgr.get_instances()
-        instances = [ instance.to_dict() for instance in api_response.data ]
-        module.exit_json(msg=json.loads(json.dumps(instances, default=str)))
-    except ApiException as e:
-        module.fail_json(msg=e)
+    cntb_mgr = ContaboInstanceInfo(module)
+    data = cntb_mgr.get_instances()
+    module.exit_json(msg=data)
 
 if __name__ == '__main__':
     main()
