@@ -19,8 +19,13 @@ class ContaboRestClient():
 
     def _request(self, endpoint, *args, **kwargs):
         x_request_id = str(uuid.uuid4())
+        body = kwargs.get("body")
         try:
-            return endpoint(x_request_id, *args, **kwargs)
+            if body:
+                del kwargs["body"]
+                return endpoint(body, x_request_id, *args, **kwargs)
+            else:
+                return endpoint(x_request_id, *args, **kwargs)
         except ApiException as e:
             self.module.fail_json(msg=e)
 
@@ -30,3 +35,19 @@ class ContaboRestClient():
         else:
             data = reponse.data
         return json.loads(json.dumps(data, default=str))
+
+    def get_kwargs(self, allowed_params: list):
+        kwargs = {}
+        for key in allowed_params:
+            val = self.module.params.get(key)
+            if val:
+                kwargs[key] = val
+        return kwargs
+
+    def map_kwargs(self, allowed_params_map: dict):
+        kwargs = {}
+        for key, mapped_key in allowed_params_map.items():
+            val = self.module.params.get(key)
+            if val:
+                kwargs[mapped_key] = val
+        return kwargs
