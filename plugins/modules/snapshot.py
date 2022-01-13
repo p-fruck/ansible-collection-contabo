@@ -5,6 +5,59 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.pfruck.contabo.plugins.module_utils.contabo_rest_client import ContaboRestClient
 from pfruck_contabo import SnapshotsApi, SnapshotResponse
 
+DOCUMENTATION = r"""
+---
+module: snapshot
+
+short_description: Manage snapshots for a given instance
+
+description:
+    - Create, update or delete a snapshot by its name.
+
+version_added: "1.0.0"
+
+author: "Philipp Fruck (@p-fruck)"
+
+options:
+    api_key:
+        description:
+            - Bearer authentication token for the Contabo API.
+        required: True
+        default: None
+    instance_id:
+        description:
+            - ID of the Contabo compute instance.
+        required: True
+        default: None
+    snapshot_id:
+        description:
+            - ID of the compute instance snapshot.
+        required: False
+        default: None
+    name:
+        description:
+            - Name of the compute instance snapshot.
+        required: True
+        default: None
+    description:
+        description:
+            - Description of the compute instance snapshot.
+            - The description is currently not shown in the Contabo web interface.
+        required: False
+        default: None
+    state:
+        description:
+            - Desirated state of the snapshot.
+        required: False
+        default: present
+        choices:
+            - present
+            - absent
+
+requirements:
+    - pfruck-contabo >= 1.0.0
+"""
+
 class ContaboSnapshot(ContaboRestClient):
     def __init__(self, module):
         super(ContaboSnapshot, self).__init__(module, SnapshotsApi)
