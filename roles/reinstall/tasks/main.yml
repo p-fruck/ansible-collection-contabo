@@ -1,0 +1,85 @@
+---
+- name: Retrieve list of all contabo images
+  pfruck.contabo.image_info:
+    api_key: "{{ cntb_token }}"
+    name: "{{ cntb_image_name }}"
+    order_by:
+      - name:asc
+  register: cntb_images
+
+- name: Fail if requested image does not exist
+  ansible.builtin.fail:
+    msg: "Requested image not found ({{ cntb_image_name }})"
+  when: "{{ cntb_images.result.data | length }} == 0"
+
+- name: Gather instance info
+  pfruck.contabo.instance_info:
+    api_key: "{{ cntb_token }}"
+    instance_id: "{{ cntb_instance_id }}"
+  register: instance_info
+
+- name: Fail if given instance does not exist
+  ansible.builtin.fail:
+    msg: "Requested instance not found ({{ cntb_instance_id }})"
+  when: "{{ instance_info.result.data | length }} == 0"
+
+- set_fact:
+    cntb_instance: "{{ instance_info.result.data[0] }}"
+
+- name: Create root ssh keypair
+  community.crypto.openssh_keypair:
+    path: "~/.ssh/id_{{ cntb_instance.name }}"
+    type: ed25519
+  register: generate_ssh_keypair
+
+- name: Add instance as a new host
+  ansible.builtin.add_host:
+    hostname: "{{ cntb_instance.name }}"
+    ansible_host: "{{ cntb_instance.ip_config.v4.ip }}"
+    ansible_user: "admin"
+    ansible_ssh_private_key_file: "{{ generate_ssh_keypair.filename }}"
+    groups:
+      - cntb_reinstalled
+
+- name: Remove instance host key from known_hosts
+  ansible.builtin.known_hosts:
+    name: "{{ cntb_instance.ip_config.v4.ip }}"
+    state: absent
+
+- name: Add SSH key for the root user
+  pfruck.contabo.secret:
+    api_key: "{{ cntb_token }}"
+    name: "root-ssh-key-{{ cntb_instance.name }}"
+    value: "{{ lookup('file', generate_ssh_keypair.filename + '.pub') }}"
+    type: ssh
+    state: present
+  register: cntb_secret
+
+- set_fact:
+    test:
+      - "{{ cntb_secret.result.data[0].secret_id | int }}"
+- debug: var=test
+
+- name: Reinstall a given instance
+  pfruck.contabo.instance_reinstall:
+    api_key: "{{ cntb_token }}"
+    image_id: "{{ cntb_images.result.data[0].image_id }}"
+    instance_id: "{{ cntb_instance_id }}"
+    ssh_key_ids:
+      - "{{ cntb_secret.result.data[0].secret_id | int }}"
+    # user_data: "{{ lookup('file', cloud_init_file) }}"
+
+- name: Add delay to reinstall process
+  ansible.builtin.pause:
+    seconds: 10
+
+- name: Wait for ssh
+  ansible.builtin.wait_for:
+    port: 22
+    host: "{{ cntb_instance.ip_config.v4.ip }}"
+
+- name: Delete stored secret from Contabo API
+  pfruck.contabo.secret:
+    api_key: "{{ cntb_token }}"
+    secret_id: "{{ cntb_secret.result.data[0].secret_id | int }}"
+    state: absent
