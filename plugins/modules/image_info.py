@@ -18,14 +18,14 @@ def argspec():
     return {
         "api_key": {"type": "str", "required": True, "no_log": True},
         "name": {"type": "str", "required": False},
-        "order_by": {"type": "list", "required": False},
+        "order_by": {"type": "list", "elements": "str", "required": False},
     }
 
 def main():
     module = AnsibleModule(argument_spec=argspec(), supports_check_mode=False)
     cntb_mgr = ContaboImageInfo(module)
-    data = cntb_mgr.get_images()
-    module.exit_json(msg=data)
+    result = cntb_mgr.get_images()
+    module.exit_json(result=result)
 
 if __name__ == '__main__':
     main()

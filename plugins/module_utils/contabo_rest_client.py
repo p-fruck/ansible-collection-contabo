@@ -30,11 +30,7 @@ class ContaboRestClient():
             self.module.fail_json(msg=e)
 
     def format_json(self, response):
-        if isinstance(response.data, list):
-            data = [ item.to_dict() for item in response.data ]
-        else:
-            data = reponse.data
-        return json.loads(json.dumps(data, default=str))
+        return json.loads(json.dumps(response.to_dict(), default=str))
 
     def get_kwargs(self, allowed_params: list):
         kwargs = {}

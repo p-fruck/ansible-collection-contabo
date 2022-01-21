@@ -22,7 +22,7 @@ def main():
         oauth_response = requests.post(AUTH_URL, data=data)
         if oauth_response.status_code not in [200]:
             module.fail_json(msg=(oauth_response.status_code, oauth_response.content))
-        module.exit_json(msg=oauth_response.json())
+        module.exit_json(data=oauth_response.json())
     except Exception as e:
         module.fail_json(msg=e)
 
