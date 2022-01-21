@@ -1,0 +1,15 @@
+---
+# tasks file for auth
+- name: Retrieve Bearer API token
+  pfruck.contabo.auth:
+    client_id: "{{ client_id }}"
+    client_secret: "{{ client_secret }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+  register: oauth_response
+  no_log: yes
+
+- name: "Retrieve access token from response"
+  set_fact:
+    cntb_token: "{{ oauth_response.data.access_token }}"
+  no_log: yes
